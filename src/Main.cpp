@@ -15,5 +15,14 @@ int main(int argc,char* argv[])
     int target_error=std::stoi(argv[3]);
     ldpc_full_precision_decoder thisldpc(parity_file,parameters,target_error,std::stoi(argv[4]),argv[1]);
     thisldpc.fill_in();
-    thisldpc.main_simulation(argv[5]);
+    std::cout<<argc<<std::endl;
+    if (argc==6)
+    {
+        thisldpc.main_simulation(argv[5]);
+    }
+    else if (argc==7)
+    {
+        thisldpc.main_simulation(argv[5],argv[6]);
+    }
+    
 }

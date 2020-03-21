@@ -232,3 +232,342 @@ void ldpc_full_precision_decoder::main_simulation(const char ind[])
         result_bar.close();
     }
 }
+
+void ldpc_full_precision_decoder::main_simulation(const char ind[], std::string G_filename)
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::binomial_distribution<> d(1, 0.5);
+    h_ins.Read_G_Matrix(G_filename);
+    int total_num = 0;
+    int error_num = 0;
+    int iteration;
+    int iteration_2=0;
+    double cur_para;
+    std::vector<double> codewords;
+    std::vector<int> final_bits;
+    std::vector<int> initial_bits;
+    for (unsigned ii = 0; ii < parameters.size(); ii++)
+    {
+        iteration = 0;
+        cur_para = pow(10, (-0.1 * parameters[ii]) / (2.0 * h_ins.rate));
+        std::string result_file = "Result_n_" + std::to_string(h_ins.vari_num) + "_k_" + std::to_string(h_ins.check_num) + "_check_" + check_op + "_Para_" + std::to_string(parameters[ii]) + "_ind_" + ind + ".txt";
+        std::ofstream result_bar;
+        do
+        {
+            total_num = total_num + 1;
+            codewords.assign(h_ins.vari_num, 1);
+            final_bits.assign(h_ins.vari_num, -1);
+            initial_bits.assign(h_ins.vari_num, 0);
+            for (int ii = 0; ii < (h_ins.vari_num - h_ins.check_num); ii++)
+            {
+                initial_bits[ii] = d(gen);
+            }
+            //add noise
+            generate_whole_bits(initial_bits);
+            generate_codeword(initial_bits, codewords);
+            noise_generator(codewords, cur_para);
+            bool result = decoder(codewords, iteration, final_bits,initial_bits, cur_para);
+            if (!result)
+            {
+                error_num = error_num + 1;
+                int cur_ind = target_error*std::stoi(ind)+(error_num-1);
+                std::string wcwd_filename="wrong_cwd_"+std::to_string(cur_ind)+".txt";
+                std::ofstream wcwd_file(wcwd_filename);
+                for (unsigned ii =0; ii<codewords.size();ii++)
+                {
+                    wcwd_file<<codewords[ii]<<"  ";
+                }
+                wcwd_file.close();
+                decoder_track(codewords,iteration_2,final_bits,initial_bits,cur_para,cur_ind);
+                std::cout << "Para: " << parameters[ii] << " error: " << error_num << "fer: " << (double)error_num / (double)total_num << std::endl;
+            }
+            if (total_num % 100 == 1)
+            {
+                result_bar.open(result_file);
+                result_bar << parameters[ii] << "  " << total_num << "  " << error_num << "  " << (double)iteration / (double)total_num << std::endl;
+                result_bar.close();
+            }
+
+        } while (error_num < target_error);
+        result_bar.open(result_file);
+        result_bar << parameters[ii] << "  " << total_num << "  " << error_num << "  " << (double)iteration / (double)total_num << std::endl;
+        result_bar.close();
+    }
+}
+
+void ldpc_full_precision_decoder::generate_whole_bits(std::vector<int> &inputbit)
+{
+    for (unsigned ii = 0; ii < h_ins.G_info[0].size(); ii++)
+    {
+        inputbit[h_ins.G_info[1][ii]] += inputbit[h_ins.G_info[0][ii]];
+    }
+    for (unsigned ii = 0; ii < inputbit.size(); ii++)
+    {
+        inputbit[ii] = inputbit[ii] % 2;
+    }
+}
+
+void ldpc_full_precision_decoder::generate_codeword(std::vector<int> &inputbit, std::vector<double> &codewords)
+{
+    for (unsigned ii = 0; ii < inputbit.size(); ii++)
+    {
+        codewords[ii] = (inputbit[ii] == 1) ? -1.0 : 1.0;
+    }
+}
+
+bool ldpc_full_precision_decoder::decoder(std::vector<double> cwds,int &iteration, std::vector<int> & final_bits,std::vector<int> & initial_bits ,  double sigma2)
+{
+    //Definition area
+    std::vector<double> msg_c2v(h_ins.edge_num, -1);
+    std::vector<double> msg_v2c(h_ins.edge_num, -1);
+    std::vector<double> rx(h_ins.vari_num, -1);
+    double final_codewords;
+    std::vector<double> message;
+
+
+    for (int ii = 0; ii < h_ins.vari_num; ii++)
+    {
+        rx[ii] = (2/sigma2)*cwds[ii];
+    }
+
+    //Ini v2c messages
+    for (int ii = 0; ii < h_ins.vari_num; ii++)
+    {
+        for (int jj = 0; jj < h_ins.vari_degreetable[ii]; jj++)
+        {
+            msg_v2c[h_ins.edge_v[ii][jj]] = rx[ii];
+        }
+    }
+
+    //Start Iteration
+    for (int cur_iter = 0; cur_iter < max_iter; cur_iter++)
+    {
+        //c2v update
+        for (int ii = 0; ii < h_ins.check_num; ii++)
+        {
+            int cur_dc = h_ins.check_degreetable[ii];
+            for (int jj = 0; jj < cur_dc; jj++)
+            {
+                message.clear();
+                for (int kk = 0; kk < cur_dc; kk++)
+                {
+                    if (kk != jj)
+                    {
+                        message.push_back(msg_v2c[h_ins.edge_c[ii][kk]]);
+                    }
+                }
+                if(strcmp(check_op,"boxplus")==0)
+                {
+                    msg_c2v[h_ins.edge_c[ii][jj]]=check_node_operation(message);
+                }
+                else if (strcmp(check_op,"minsum")==0)
+                {
+                    msg_c2v[h_ins.edge_c[ii][jj]]=check_node_operation_min_double(message);
+                }
+                else if (strcmp(check_op,"att_minsum")==0)
+                {
+                    msg_c2v[h_ins.edge_c[ii][jj]]=check_node_operation_att_min_double(message,0.7);
+                }
+                else if (strcmp(check_op,"minstar")==0)
+                {
+                    msg_c2v[h_ins.edge_c[ii][jj]]=check_node_operation_minstar(message);
+                }
+                else
+                {
+                    std::cout<<"Info: no such operation "<< check_op<<".... please check again"<<std::endl;
+                }
+            }
+        }
+
+        //v2c update
+        for (int ii = 0; ii < h_ins.vari_num; ii++)
+        {
+            int cur_dv = h_ins.vari_degreetable[ii]; //find current dv
+            for (int jj = 0; jj < cur_dv; jj++)
+            {
+                message.clear();
+                message.push_back(rx[ii]);
+                //std::cout<<"have been 2.5"<<std::endl;
+                for (int kk = 0; kk < cur_dv; kk++)
+                {
+                    //collect data
+                    if (kk != jj)
+                    {
+                        message.push_back(msg_c2v[h_ins.edge_v[ii][kk]]);
+                    }
+                }
+                msg_v2c[h_ins.edge_v[ii][jj]] = vari_node_operation(message);
+            }
+        }
+
+        //final decision
+        for (int ii = 0; ii < h_ins.vari_num; ii++)
+        {
+
+            int cur_dv = h_ins.vari_degreetable[ii];
+            message.clear();
+            message.push_back(rx[ii]);
+            for (int jj = 0; jj < cur_dv; jj++)
+            {
+                message.push_back(msg_c2v[h_ins.edge_v[ii][jj]]);
+            }
+            final_codewords = vari_node_operation(message);
+            if (final_codewords > 0)
+            {
+                final_bits[ii] = 0;
+            }
+            else
+            {
+                final_bits[ii] = 1;
+            }
+        }
+
+        //check sum
+        if (iscwds(final_bits))
+        {
+            iteration = iteration + cur_iter + 1;
+            for (int ii = 0; ii < h_ins.vari_num; ii++)
+            {
+                if (final_bits[ii] != initial_bits[ii])
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+    iteration = iteration + max_iter;
+    return false;
+}
+
+
+
+void ldpc_full_precision_decoder::decoder_track(std::vector<double> cwds, int &iteration, std::vector<int> &final_bits, std::vector<int> &initial_bits, double sigma2, int ind)
+{
+    //Definition area
+    std::vector<double> msg_c2v(h_ins.edge_num, -1);
+    std::vector<double> msg_v2c(h_ins.edge_num, -1);
+    std::vector<double> rx(h_ins.vari_num, -1);
+    std::string ts_filename = "trapping_set_"+std::to_string(ind)+".txt";
+    std::ofstream myfile(ts_filename);
+    std::vector<int> cur_ts;
+    double final_codewords;
+    std::vector<double> message;
+
+    for (int ii = 0; ii < h_ins.vari_num; ii++)
+    {
+        rx[ii] = (2 / sigma2) * cwds[ii];
+    }
+
+    //Ini v2c messages
+    for (int ii = 0; ii < h_ins.vari_num; ii++)
+    {
+        for (int jj = 0; jj < h_ins.vari_degreetable[ii]; jj++)
+        {
+            msg_v2c[h_ins.edge_v[ii][jj]] = rx[ii];
+        }
+    }
+
+    //Start Iteration
+    for (int cur_iter = 0; cur_iter < max_iter; cur_iter++)
+    {
+        //c2v update
+        for (int ii = 0; ii < h_ins.check_num; ii++)
+        {
+            int cur_dc = h_ins.check_degreetable[ii];
+            for (int jj = 0; jj < cur_dc; jj++)
+            {
+                message.clear();
+                for (int kk = 0; kk < cur_dc; kk++)
+                {
+                    if (kk != jj)
+                    {
+                        message.push_back(msg_v2c[h_ins.edge_c[ii][kk]]);
+                    }
+                }
+                if (strcmp(check_op, "boxplus") == 0)
+                {
+                    msg_c2v[h_ins.edge_c[ii][jj]] = check_node_operation(message);
+                }
+                else if (strcmp(check_op, "minsum") == 0)
+                {
+                    msg_c2v[h_ins.edge_c[ii][jj]] = check_node_operation_min_double(message);
+                }
+                else if (strcmp(check_op, "att_minsum") == 0)
+                {
+                    msg_c2v[h_ins.edge_c[ii][jj]] = check_node_operation_att_min_double(message, 0.7);
+                }
+                else if (strcmp(check_op, "minstar") == 0)
+                {
+                    msg_c2v[h_ins.edge_c[ii][jj]] = check_node_operation_minstar(message);
+                }
+                else
+                {
+                    std::cout << "Info: no such operation " << check_op << ".... please check again" << std::endl;
+                }
+            }
+        }
+
+        //v2c update
+        for (int ii = 0; ii < h_ins.vari_num; ii++)
+        {
+            int cur_dv = h_ins.vari_degreetable[ii]; //find current dv
+            for (int jj = 0; jj < cur_dv; jj++)
+            {
+                message.clear();
+                message.push_back(rx[ii]);
+                //std::cout<<"have been 2.5"<<std::endl;
+                for (int kk = 0; kk < cur_dv; kk++)
+                {
+                    //collect data
+                    if (kk != jj)
+                    {
+                        message.push_back(msg_c2v[h_ins.edge_v[ii][kk]]);
+                    }
+                }
+                msg_v2c[h_ins.edge_v[ii][jj]] = vari_node_operation(message);
+            }
+        }
+
+        //final decision
+        for (int ii = 0; ii < h_ins.vari_num; ii++)
+        {
+
+            int cur_dv = h_ins.vari_degreetable[ii];
+            message.clear();
+            message.push_back(rx[ii]);
+            for (int jj = 0; jj < cur_dv; jj++)
+            {
+                message.push_back(msg_c2v[h_ins.edge_v[ii][jj]]);
+            }
+            final_codewords = vari_node_operation(message);
+            if (final_codewords > 0)
+            {
+                final_bits[ii] = 0;
+            }
+            else
+            {
+                final_bits[ii] = 1;
+            }
+        }
+        cur_ts.clear();
+        //check sum
+        for (int ii = 0; ii < h_ins.vari_num; ii++)
+        {
+            if (final_bits[ii] != initial_bits[ii])
+            {
+                cur_ts.push_back(ii);
+            }
+        }
+
+        //write out 
+        for(unsigned ii=0;ii<cur_ts.size();ii++)
+        {
+            myfile<<ii<<"  ";
+        }
+        myfile<<std::endl;
+    }
+    iteration = iteration + max_iter;
+    myfile.close();
+}
