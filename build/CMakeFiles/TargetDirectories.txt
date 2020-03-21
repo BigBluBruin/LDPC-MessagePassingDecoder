@@ -1,3 +1,0 @@
-/mnt/e/Gitrepo/LDPC-MessagePassingDecoder/build/CMakeFiles/rebuild_cache.dir
-/mnt/e/Gitrepo/LDPC-MessagePassingDecoder/build/CMakeFiles/runner.dir
-/mnt/e/Gitrepo/LDPC-MessagePassingDecoder/build/CMakeFiles/edit_cache.dir
