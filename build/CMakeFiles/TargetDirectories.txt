@@ -1,0 +1,3 @@
+/mnt/d/GitRepo/LDPC-MessagePassingDecoder/build/CMakeFiles/rebuild_cache.dir
+/mnt/d/GitRepo/LDPC-MessagePassingDecoder/build/CMakeFiles/runner.dir
+/mnt/d/GitRepo/LDPC-MessagePassingDecoder/build/CMakeFiles/edit_cache.dir
