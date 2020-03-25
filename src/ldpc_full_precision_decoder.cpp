@@ -451,11 +451,15 @@ void ldpc_full_precision_decoder::decoder_track(std::vector<double> cwds, int &i
     //Definition area
     std::vector<double> msg_c2v(h_ins.edge_num, -1);
     std::vector<double> msg_v2c(h_ins.edge_num, -1);
+    std::vector<double> final_codewords(h_ins.vari_num,-1);
     std::vector<double> rx(h_ins.vari_num, -1);
-    std::string ts_filename = "trapping_set_"+std::to_string(ind)+".txt";
+    std::string ts_filename = "trapping_set_boxplus_"+std::to_string(ind)+".txt";
+    std::string llr_filename = "wrong_llr_boxplus_"+std::to_string(ind)+".txt";
     std::ofstream myfile(ts_filename);
+    std::ofstream my_llr_file(llr_filename);
     std::vector<int> cur_ts;
-    double final_codewords;
+    std::vector<double> cur_llr;
+
     std::vector<double> message;
 
     for (int ii = 0; ii < h_ins.vari_num; ii++)
@@ -509,6 +513,12 @@ void ldpc_full_precision_decoder::decoder_track(std::vector<double> cwds, int &i
                 {
                     std::cout << "Info: no such operation " << check_op << ".... please check again" << std::endl;
                 }
+                if (msg_c2v[h_ins.edge_c[ii][jj]] == -INFINITY || msg_c2v[h_ins.edge_c[ii][jj]] == INFINITY)
+                {
+                    for (auto aa : message)
+                        std::cout << aa << " ";
+                    std::cout << std::endl;
+                }
             }
         }
 
@@ -544,8 +554,9 @@ void ldpc_full_precision_decoder::decoder_track(std::vector<double> cwds, int &i
             {
                 message.push_back(msg_c2v[h_ins.edge_v[ii][jj]]);
             }
-            final_codewords = vari_node_operation(message);
-            if (final_codewords > 0)
+            final_codewords[ii] = vari_node_operation(message);
+
+            if (final_codewords[ii] > 0)
             {
                 final_bits[ii] = 0;
             }
@@ -555,22 +566,29 @@ void ldpc_full_precision_decoder::decoder_track(std::vector<double> cwds, int &i
             }
         }
         cur_ts.clear();
+        cur_llr.clear();
         //check sum
         for (int ii = 0; ii < h_ins.vari_num; ii++)
         {
             if (final_bits[ii] != initial_bits[ii])
             {
                 cur_ts.push_back(ii);
+                cur_llr.push_back(final_codewords[ii]);
             }
         }
 
         //write out 
         for(unsigned ii=0;ii<cur_ts.size();ii++)
         {
-            myfile<<ii<<"  ";
+            myfile<<cur_ts[ii]<<"  ";
+            my_llr_file<<final_codewords[ii]<<" ";
         }
         myfile<<std::endl;
+        my_llr_file<<std::endl;
+        if(iscwds(final_bits))
+            std::cout<<ind<<"is undetected cwds"<<std::endl;
     }
     iteration = iteration + max_iter;
     myfile.close();
+    my_llr_file.close();
 }

@@ -11,7 +11,7 @@
 
 class ldpc_full_precision_decoder{
 
-private:
+public:
 std::string h_filename;
 std::vector<double> parameters; //noise
 Parity_Check_Matrix_Info h_ins;

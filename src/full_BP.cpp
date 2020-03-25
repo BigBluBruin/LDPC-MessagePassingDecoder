@@ -16,7 +16,17 @@ double boxplus(double argument_1, double argument_2)
 	
 	output1 = max1 - max2 + log(1 + exp(-abs(sum1))) - log(1+exp(-abs(argument_1 - argument_2)));
 	return output1;*/
-    return 2 * atanh(tanh(argument_1 / 2) * tanh(argument_2 / 2));
+    double result = 2 * atanh(tanh(argument_1 / 2) * tanh(argument_2 / 2));
+    if (result==INFINITY)
+    {
+        result = 3.0*pow(10,7);
+    }
+    else if (result==-INFINITY)
+    {
+        result = - 3.0*pow(10,7);
+        //std::cout<<"here"<<std::endl;
+    }
+    return result;
 }
 
 double check_node_operation(std::vector<double> input)
