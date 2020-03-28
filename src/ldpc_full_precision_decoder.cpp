@@ -200,6 +200,7 @@ void ldpc_full_precision_decoder::main_simulation(const char ind[])
     double cur_para;
     std::vector<double> codewords;
     std::vector<int> final_bits;
+    std::vector<int> ini_bits(h_ins.vari_num,0);
     for (unsigned ii = 0; ii < parameters.size(); ii++)
     {
         iteration = 0;
@@ -213,7 +214,7 @@ void ldpc_full_precision_decoder::main_simulation(const char ind[])
             final_bits.assign(h_ins.vari_num, -1);
             //add noise
             noise_generator(codewords, cur_para);
-            bool result = decoder(codewords, iteration, final_bits,cur_para);
+            bool result = decoder(codewords, iteration, final_bits,ini_bits,cur_para);
             if (!result)
             {
                 error_num = error_num + 1;
@@ -325,8 +326,10 @@ bool ldpc_full_precision_decoder::decoder(std::vector<double> cwds,int &iteratio
     std::vector<double> msg_c2v(h_ins.edge_num, -1);
     std::vector<double> msg_v2c(h_ins.edge_num, -1);
     std::vector<double> rx(h_ins.vari_num, -1);
+    std::vector<double> forward, backward;
     double final_codewords;
     std::vector<double> message;
+    int cur_dc,cur_dv;
 
 
     for (int ii = 0; ii < h_ins.vari_num; ii++)
@@ -343,72 +346,60 @@ bool ldpc_full_precision_decoder::decoder(std::vector<double> cwds,int &iteratio
         }
     }
 
-    //Start Iteration
+    // //Start Iteration
     for (int cur_iter = 0; cur_iter < max_iter; cur_iter++)
     {
-        //c2v update
+
+
+         //c2v update forward backword encoding
         for (int ii = 0; ii < h_ins.check_num; ii++)
         {
-            int cur_dc = h_ins.check_degreetable[ii];
-            for (int jj = 0; jj < cur_dc; jj++)
+            cur_dc = h_ins.check_degreetable[ii];
+            forward.assign(cur_dc, -1);
+            backward.assign(cur_dc, -1);
+            forward[0] = msg_v2c[h_ins.edge_c[ii][0]];
+            for (int jj = 1; jj < cur_dc - 1; jj++)
             {
-                message.clear();
-                for (int kk = 0; kk < cur_dc; kk++)
+                if (strcmp(check_op, "boxplus") == 0)
                 {
-                    if (kk != jj)
-                    {
-                        message.push_back(msg_v2c[h_ins.edge_c[ii][kk]]);
-                    }
+                    forward[jj] = boxplus(forward[jj - 1], msg_v2c[h_ins.edge_c[ii][jj]]);
                 }
-                if(strcmp(check_op,"boxplus")==0)
+                else if (strcmp(check_op, "minsum") == 0)
                 {
-                    msg_c2v[h_ins.edge_c[ii][jj]]=check_node_operation(message);
-                }
-                else if (strcmp(check_op,"minsum")==0)
-                {
-                    msg_c2v[h_ins.edge_c[ii][jj]]=check_node_operation_min_double(message);
-                }
-                else if (strcmp(check_op,"att_minsum")==0)
-                {
-                    msg_c2v[h_ins.edge_c[ii][jj]]=check_node_operation_att_min_double(message,0.7);
-                }
-                else if (strcmp(check_op,"minstar")==0)
-                {
-                    msg_c2v[h_ins.edge_c[ii][jj]]=check_node_operation_minstar(message);
+                    forward[jj] = check_min_double(forward[jj - 1], msg_v2c[h_ins.edge_c[ii][jj]]);
                 }
                 else
                 {
-                    std::cout<<"Info: no such operation "<< check_op<<".... please check again"<<std::endl;
+                    std::cout << "Info: no such operation " << check_op << ".... please check again" << std::endl;
                 }
             }
+            msg_c2v[h_ins.edge_c[ii][cur_dc - 1]] = forward[cur_dc - 2];
+            backward[cur_dc - 1] = msg_v2c[h_ins.edge_c[ii][cur_dc - 1]];
+            for (int jj = cur_dc - 2; jj > 0; jj--)
+            {
+                if (strcmp(check_op, "boxplus") == 0)
+                {
+                    backward[jj] = boxplus(backward[jj + 1], msg_v2c[h_ins.edge_c[ii][jj]]);
+                    msg_c2v[h_ins.edge_c[ii][jj]] = boxplus(backward[jj + 1], forward[jj - 1]);
+                }
+                else if (strcmp(check_op, "minsum") == 0)
+                {
+                    backward[jj] = check_min_double(backward[jj + 1], msg_v2c[h_ins.edge_c[ii][jj]]);
+                    msg_c2v[h_ins.edge_c[ii][jj]] = check_min_double(backward[jj + 1], forward[jj - 1]);
+                }
+                else
+                {
+                    std::cout << "Info: no such operation " << check_op << ".... please check again" << std::endl;
+                }
+            }
+            msg_c2v[h_ins.edge_c[ii][0]] = backward[1];
         }
 
         //v2c update
         for (int ii = 0; ii < h_ins.vari_num; ii++)
         {
-            int cur_dv = h_ins.vari_degreetable[ii]; //find current dv
-            for (int jj = 0; jj < cur_dv; jj++)
-            {
-                message.clear();
-                message.push_back(rx[ii]);
-                //std::cout<<"have been 2.5"<<std::endl;
-                for (int kk = 0; kk < cur_dv; kk++)
-                {
-                    //collect data
-                    if (kk != jj)
-                    {
-                        message.push_back(msg_c2v[h_ins.edge_v[ii][kk]]);
-                    }
-                }
-                msg_v2c[h_ins.edge_v[ii][jj]] = vari_node_operation(message);
-            }
-        }
 
-        //final decision
-        for (int ii = 0; ii < h_ins.vari_num; ii++)
-        {
-
-            int cur_dv = h_ins.vari_degreetable[ii];
+            cur_dv = h_ins.vari_degreetable[ii];
             message.clear();
             message.push_back(rx[ii]);
             for (int jj = 0; jj < cur_dv; jj++)
@@ -416,6 +407,10 @@ bool ldpc_full_precision_decoder::decoder(std::vector<double> cwds,int &iteratio
                 message.push_back(msg_c2v[h_ins.edge_v[ii][jj]]);
             }
             final_codewords = vari_node_operation(message);
+            for (int jj = 0; jj < cur_dv; jj++)
+            {
+                msg_v2c[h_ins.edge_v[ii][jj]] = final_codewords-msg_c2v[h_ins.edge_v[ii][jj]];
+            }
             if (final_codewords > 0)
             {
                 final_bits[ii] = 0;
@@ -592,3 +587,117 @@ void ldpc_full_precision_decoder::decoder_track(std::vector<double> cwds, int &i
     myfile.close();
     my_llr_file.close();
 }
+
+
+
+//-----trash code-----
+/*cur_dv = h_ins.vari_degreetable[5];
+for (int ii = 0; ii < cur_dc; ii++)
+{
+    std::cout << msg_c2v[h_ins.edge_v[5][ii]] << "  ";
+}
+std::cout << std::endl;
+
+for (int ii = 0; ii < h_ins.vari_num; ii++)
+{
+    cur_dv = h_ins.vari_degreetable[ii]; //find current dv
+    for (int jj = 0; jj < cur_dv; jj++)
+    {
+        message.clear();
+        message.push_back(rx[ii]);
+        //std::cout<<"have been 2.5"<<std::endl;
+        for (int kk = 0; kk < cur_dv; kk++)
+        {
+            //collect data
+            if (kk != jj)
+            {
+                message.push_back(msg_c2v[h_ins.edge_v[ii][kk]]);
+            }
+        }
+        msg_v2c[h_ins.edge_v[ii][jj]] = vari_node_operation(message);
+    }
+}*/
+
+/*cur_dv = h_ins.vari_degreetable[5];
+for (int ii = 0; ii < cur_dc; ii++)
+{
+    std::cout << msg_c2v[h_ins.edge_v[5][ii]] << "  ";
+}
+std::cout << std::endl;
+return false;
+
+//final decision
+for (int ii = 0; ii < h_ins.vari_num; ii++)
+{
+
+    int cur_dv = h_ins.vari_degreetable[ii];
+    message.clear();
+    message.push_back(rx[ii]);
+    for (int jj = 0; jj < cur_dv; jj++)
+    {
+        message.push_back(msg_c2v[h_ins.edge_v[ii][jj]]);
+    }
+    final_codewords = vari_node_operation(message);
+    if (final_codewords > 0)
+    {
+        final_bits[ii] = 0;
+    }
+    else
+    {
+        final_bits[ii] = 1;
+    }
+}
+
+        cur_dc = h_ins.check_degreetable[0];
+        for (int ii = 0; ii < cur_dc; ii++)
+        {
+            std::cout << msg_c2v[h_ins.edge_c[0][ii]] << "  ";
+        }
+        std::cout << std::endl;
+        return false;*/
+
+//c2v update
+/*for (int ii = 0; ii < h_ins.check_num; ii++)
+{
+    cur_dc = h_ins.check_degreetable[ii];
+
+    for (int jj = 0; jj < cur_dc; jj++)
+    {
+        message.clear();
+        for (int kk = 0; kk < cur_dc; kk++)
+        {
+            if (kk != jj)
+            {
+                message.push_back(msg_v2c[h_ins.edge_c[ii][kk]]);
+            }
+        }
+        if (strcmp(check_op, "boxplus") == 0)
+        {
+            msg_c2v[h_ins.edge_c[ii][jj]] = check_node_operation(message);
+        }
+        else if (strcmp(check_op, "minsum") == 0)
+        {
+            msg_c2v[h_ins.edge_c[ii][jj]] = check_node_operation_min_double(message);
+        }
+        else if (strcmp(check_op, "att_minsum") == 0)
+        {
+            msg_c2v[h_ins.edge_c[ii][jj]] = check_node_operation_att_min_double(message, 0.7);
+        }
+        else if (strcmp(check_op, "minstar") == 0)
+        {
+            msg_c2v[h_ins.edge_c[ii][jj]] = check_node_operation_minstar(message);
+        }
+        else
+        {
+            std::cout << "Info: no such operation " << check_op << ".... please check again" << std::endl;
+        }
+    }
+}
+
+cur_dc = h_ins.check_degreetable[0];
+for (int ii = 0; ii < cur_dc; ii++)
+{
+    std::cout << msg_c2v[h_ins.edge_c[0][ii]] << "  ";
+}
+std::cout << std::endl;
+*/
