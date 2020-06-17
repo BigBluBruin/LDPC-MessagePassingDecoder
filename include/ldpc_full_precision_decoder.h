@@ -30,7 +30,6 @@ public:
 ldpc_full_precision_decoder(std::string H_filename, std::vector<double> Parameters,int Target_error, int Max_ter, char Check_op[]);
 void noise_generator(std::vector<double> & cwds,double parameter);
 void fill_in();
-
 bool iscwds(std::vector<int> final_bits);
 
 //-----Decoder overloads , can be combined by one!-----

@@ -2,20 +2,6 @@
 
 double boxplus(double argument_1, double argument_2)
 {
-    /*double sum1, max1, max2, output1;
-	sum1 = argument_1 + argument_2;
-	if(sum1 >= 0)
-		max1 = sum1;
-	else
-		max1 = 0;
-	
-	if(argument_1 >= argument_2)
-		max2 = argument_1;
-	else
-		max2 = argument_2;
-	
-	output1 = max1 - max2 + log(1 + exp(-abs(sum1))) - log(1+exp(-abs(argument_1 - argument_2)));
-	return output1;*/
     double result = 2 * atanh(tanh(argument_1 / 2) * tanh(argument_2 / 2));
     if (result==INFINITY)
     {
@@ -111,3 +97,24 @@ double check_node_operation_minstar(std::vector<double> & input)
     return fir;
 }
 
+void LP(double &in, int l, int r)
+{
+
+    double rpow, lpow, minpow, maxpow;
+    rpow = pow(2, r);
+    lpow = pow(2, (l - 1));
+    minpow = (-1) * lpow;
+    maxpow = lpow - (double)1.0 / (double)rpow;
+    if (in > maxpow)
+    {
+        (in) = maxpow;
+    }
+    else if (in < minpow)
+    {
+        (in) = minpow;
+    }
+    else
+    {
+        (in) = (double)floor((in)*rpow + 0.5) / (double)rpow;
+    }
+}

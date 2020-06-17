@@ -8,6 +8,7 @@
 //--------------------------------------------------
 double sgn(double  input);
 double vari_node_operation(std::vector<double> input);
+void LP(double &in, int l, int r);
 //---------------------------------------------------
 double boxplus(double argument_1, double argument_2);
 double check_min_double(double & input_1, double & input_2);

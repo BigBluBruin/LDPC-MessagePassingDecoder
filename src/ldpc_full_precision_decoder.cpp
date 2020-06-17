@@ -204,7 +204,7 @@ void ldpc_full_precision_decoder::main_simulation(const char ind[])
     for (unsigned ii = 0; ii < parameters.size(); ii++)
     {
         iteration = 0;
-        cur_para = pow(10, (-0.1 * parameters[ii]) / (2.0 * h_ins.rate));
+        cur_para = pow(10, (-0.1 * parameters[ii]) )/ (2.0 * h_ins.rate);
         std::string result_file = "Result_n_" + std::to_string(h_ins.vari_num) + "_k_" + std::to_string(h_ins.check_num) + "_check_" + check_op + "_Para_" + std::to_string(parameters[ii]) + "_ind_" + ind + ".txt";
         std::ofstream result_bar;
         do
@@ -251,7 +251,7 @@ void ldpc_full_precision_decoder::main_simulation(const char ind[], std::string 
     for (unsigned ii = 0; ii < parameters.size(); ii++)
     {
         iteration = 0;
-        cur_para = pow(10, (-0.1 * parameters[ii]) / (2.0 * h_ins.rate));
+        cur_para = pow(10, (-0.1 * parameters[ii]) )/ (2.0 * h_ins.rate);
         std::string result_file = "Result_n_" + std::to_string(h_ins.vari_num) + "_k_" + std::to_string(h_ins.check_num) + "_check_" + check_op + "_Para_" + std::to_string(parameters[ii]) + "_ind_" + ind + ".txt";
         std::ofstream result_bar;
         do
@@ -283,7 +283,7 @@ void ldpc_full_precision_decoder::main_simulation(const char ind[], std::string 
                     inib_file<<initial_bits[ii]<<"  ";
                 }
                 wcwd_file.close();
-                decoder_track(codewords,iteration_2,final_bits,initial_bits,cur_para,cur_ind);
+                //decoder_track(codewords,iteration_2,final_bits,initial_bits,cur_para,cur_ind);
                 std::cout << "Para: " << parameters[ii] << " error: " << error_num << "fer: " << (double)error_num / (double)total_num << std::endl;
             }
             if (total_num % 100 == 1)
@@ -334,7 +334,8 @@ bool ldpc_full_precision_decoder::decoder(std::vector<double> cwds,int &iteratio
 
     for (int ii = 0; ii < h_ins.vari_num; ii++)
     {
-        rx[ii] = (2/sigma2)*cwds[ii];
+        rx[ii] =  (2/sigma2)*cwds[ii];
+        //std::cout<<rx[ii]<<" "<<std::endl; 
     }
 
     //Ini v2c messages
@@ -450,8 +451,21 @@ void ldpc_full_precision_decoder::decoder_track(std::vector<double> cwds, int &i
     std::vector<double> rx(h_ins.vari_num, -1);
     std::string ts_filename = "trapping_set_boxplus_"+std::to_string(ind)+".txt";
     std::string llr_filename = "wrong_llr_boxplus_"+std::to_string(ind)+".txt";
+    std::string tracking_filename = "trapping_set_info_"+std::to_string(ind)+".txt";
+    //std::vector <int> tracked_vari{297,982,928,302,987,933,879,215,923,101,807,1271,154,1153};
+    //std::vector <int> tracked_vari{297, 923,  215,  879,  933,  987,  302,  928,  982};
+    //std::vector <int> tracked_vari{297, 923,  215,  1153,  154,  1271,  101};
+    //std::vector <int> tracked_vari{101, 297, 982,  928, 302,807};
+
+    //code 11
+    //std::vector <int> tracked_vari{732,786,840,176,992,668,1261,405,833,349,1114};
+    //code 13
+    std::vector <int> tracked_vari{59,183,309,314,940,994,999,1175,1229};
+
+    std::ofstream track_handle(tracking_filename);
     std::ofstream myfile(ts_filename);
     std::ofstream my_llr_file(llr_filename);
+    std::ofstream ts_plot("bp_ts_plot.txt");
     std::vector<int> cur_ts;
     std::vector<double> cur_llr;
 
@@ -461,6 +475,59 @@ void ldpc_full_precision_decoder::decoder_track(std::vector<double> cwds, int &i
     {
         rx[ii] = (2 / sigma2) * cwds[ii];
     }
+
+    track_handle << "Input Varible Node LLR Information: " << std::endl<<std::endl;
+    track_handle <<"|vn ind|";
+    for (auto aa : tracked_vari)
+    {
+        track_handle << "   " << aa << "     |";
+    }
+    track_handle << std::endl<<"|";
+    for (unsigned ii = 0; ii < tracked_vari.size()+1; ii++)
+        track_handle << ":----:|";
+    track_handle << std::endl;
+    track_handle <<"|llr val|";
+    for (unsigned ii = 0; ii < tracked_vari.size(); ii++)
+        track_handle << " " << rx[tracked_vari[ii]] << "  |";
+    track_handle << std::endl;
+    track_handle << "|llrsign|";
+    for (unsigned ii = 0; ii < tracked_vari.size(); ii++)
+    {
+        if(rx[tracked_vari[ii]]>0)
+        {
+            track_handle << " +  |";
+        }
+        else
+        {
+           track_handle << " -  |";
+        }
+    }
+    track_handle << std::endl;
+    track_handle << "|true sign|";
+    for (unsigned ii = 0; ii < tracked_vari.size(); ii++)
+    {
+        if(initial_bits[tracked_vari[ii]]==0)
+        {
+            track_handle << " +  |";
+        }
+        else
+        {
+           track_handle << " -  |";
+        }
+    }
+    for (unsigned ii = 0; ii < tracked_vari.size(); ii++)
+    {
+        if((initial_bits[tracked_vari[ii]]==0&&rx[tracked_vari[ii]]>0)||(initial_bits[tracked_vari[ii]]==1&&rx[tracked_vari[ii]]<0))
+        {
+            ts_plot<<"1 ";
+        }
+        else
+        {
+           ts_plot<<"0 ";
+        }
+    }
+    ts_plot<<std::endl;
+    track_handle << std::endl<<std::endl;
 
     //Ini v2c messages
     for (int ii = 0; ii < h_ins.vari_num; ii++)
@@ -517,6 +584,41 @@ void ldpc_full_precision_decoder::decoder_track(std::vector<double> cwds, int &i
             }
         }
 
+        track_handle << "Iteration: " << cur_iter << "" << std::endl<<std::endl;
+
+        for (unsigned ii = 0; ii < tracked_vari.size(); ii++)
+        {
+            track_handle << "Incomming messages into variable node: " << tracked_vari[ii]  << "  ";
+            if (initial_bits[tracked_vari[ii]]==0)
+            {
+                track_handle<<"+"<<std::endl;
+            }
+            else
+            {
+                track_handle<<"-"<<std::endl;
+            }
+            
+            int cur_dv = h_ins.vari_degreetable[tracked_vari[ii]];
+            track_handle<<std::endl <<"|";
+            for (int jj = 0; jj < cur_dv; jj++)
+            {
+                track_handle << "  " << h_ins.edge_relation[1][h_ins.edge_v[tracked_vari[ii]][jj]] << "  |";
+            }
+            track_handle <<std::endl<<"|";
+            for (int jj = 0; jj < cur_dv; jj++)
+            {
+                track_handle << ":----:|";
+            }
+            track_handle << std::endl;
+            track_handle <<"|";
+            for (int jj = 0; jj < cur_dv; jj++)
+            {
+                track_handle << "  " << msg_c2v[h_ins.edge_v[tracked_vari[ii]][jj]] << "  |";
+            }
+            track_handle << std::endl
+                         << std::endl;
+        }
+
         //v2c update
         for (int ii = 0; ii < h_ins.vari_num; ii++)
         {
@@ -536,6 +638,8 @@ void ldpc_full_precision_decoder::decoder_track(std::vector<double> cwds, int &i
                 }
                 msg_v2c[h_ins.edge_v[ii][jj]] = vari_node_operation(message);
             }
+
+
         }
 
         //final decision
@@ -560,9 +664,65 @@ void ldpc_full_precision_decoder::decoder_track(std::vector<double> cwds, int &i
                 final_bits[ii] = 1;
             }
         }
+
+        track_handle << "Iteration: " << cur_iter << "- Decision Making : " << std::endl
+                     << std::endl;
+        track_handle << "|vn ind|";
+        for (auto aa : tracked_vari)
+            track_handle << "  " << aa << "   |";
+        track_handle << std::endl
+                     << "|";
+        for (unsigned ii = 0; ii < tracked_vari.size() + 1; ii++)
+            track_handle << ":----:|";
+        track_handle << std::endl
+                     << "|llr val|";
+        for (unsigned ii = 0; ii < tracked_vari.size(); ii++)
+            track_handle << " " << final_codewords[tracked_vari[ii]] << " |";
+        track_handle << std::endl;
+        track_handle << "|llr sign|";
+        for (unsigned ii = 0; ii < tracked_vari.size(); ii++)
+        {
+            if (final_codewords[tracked_vari[ii]]> 0)
+            {
+                track_handle << " +  |";
+            }
+            else
+            {
+                track_handle << " -  |";
+            }
+        }
+        track_handle << std::endl;
+        track_handle << "|true sign|";
+        for (unsigned ii = 0; ii < tracked_vari.size(); ii++)
+        {
+            if (initial_bits[tracked_vari[ii]] == 0)
+            {
+                track_handle << " +  |";
+            }
+            else
+            {
+                track_handle << " -  |";
+            }
+            if (initial_bits[tracked_vari[ii]]!=final_bits[tracked_vari[ii]])
+            {
+                ts_plot<<"0 ";
+            }
+            else
+            {
+                ts_plot<<"1 ";
+            }
+            
+        }
+        ts_plot<<std::endl;
+        track_handle << std::endl
+                     << std::endl
+                     << std::endl
+                     << std::endl;
+
+
+        //check sum
         cur_ts.clear();
         cur_llr.clear();
-        //check sum
         for (int ii = 0; ii < h_ins.vari_num; ii++)
         {
             if (final_bits[ii] != initial_bits[ii])
@@ -572,20 +732,36 @@ void ldpc_full_precision_decoder::decoder_track(std::vector<double> cwds, int &i
             }
         }
 
+
+
         //write out 
         for(unsigned ii=0;ii<cur_ts.size();ii++)
         {
             myfile<<cur_ts[ii]<<"  ";
             my_llr_file<<final_codewords[ii]<<" ";
         }
-        myfile<<std::endl;
-        my_llr_file<<std::endl;
-        if(iscwds(final_bits))
-            std::cout<<ind<<"is undetected cwds"<<std::endl;
+        myfile << std::endl;
+        my_llr_file << std::endl;
+        if (iscwds(final_bits))
+        {
+            int flag=1;
+            for (int ii = 0; ii < h_ins.vari_num; ii++)
+            {
+                if (final_bits[ii] != initial_bits[ii])
+                {
+                   flag=0;
+                   break;
+                }
+            }
+            if(flag)
+                std::cout<<ind<<" is right deocded"<<std::endl;
+        }
     }
     iteration = iteration + max_iter;
     myfile.close();
     my_llr_file.close();
+    track_handle.close();
+    ts_plot.close();
 }
 
 
