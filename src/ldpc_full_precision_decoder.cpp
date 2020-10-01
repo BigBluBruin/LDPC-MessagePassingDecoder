@@ -273,16 +273,16 @@ void ldpc_full_precision_decoder::main_simulation(const char ind[], std::string 
             {
                 error_num = error_num + 1;
                 int cur_ind = target_error*std::stoi(ind)+(error_num-1);
-                std::string wcwd_filename="wrong_cwd_"+std::to_string(cur_ind)+".txt";
-                std::string inib_filename="initial_bits_"+std::to_string(cur_ind)+".txt";
-                std::ofstream wcwd_file(wcwd_filename);
-                std::ofstream inib_file(inib_filename);
-                for (unsigned ii =0; ii<codewords.size();ii++)
-                {
-                    wcwd_file<<codewords[ii]<<"  ";
-                    inib_file<<initial_bits[ii]<<"  ";
-                }
-                wcwd_file.close();
+                // std::string wcwd_filename="wrong_cwd_"+std::to_string(cur_ind)+".txt";
+                // std::string inib_filename="initial_bits_"+std::to_string(cur_ind)+".txt";
+                // std::ofstream wcwd_file(wcwd_filename);
+                // std::ofstream inib_file(inib_filename);
+                // for (unsigned ii =0; ii<codewords.size();ii++)
+                // {
+                //     wcwd_file<<codewords[ii]<<"  ";
+                //     inib_file<<initial_bits[ii]<<"  ";
+                // }
+                // wcwd_file.close();
                 //decoder_track(codewords,iteration_2,final_bits,initial_bits,cur_para,cur_ind);
                 std::cout << "Para: " << parameters[ii] << " error: " << error_num << "fer: " << (double)error_num / (double)total_num << std::endl;
             }
