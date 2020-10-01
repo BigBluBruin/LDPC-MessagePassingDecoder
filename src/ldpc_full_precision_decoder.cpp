@@ -322,6 +322,8 @@ void ldpc_full_precision_decoder::generate_codeword(std::vector<int> &inputbit, 
 
 bool ldpc_full_precision_decoder::decoder(std::vector<double> cwds,int &iteration, std::vector<int> & final_bits,std::vector<int> & initial_bits ,  double sigma2)
 {
+
+ 
     //Definition area
     std::vector<double> msg_c2v(h_ins.edge_num, -1);
     std::vector<double> msg_v2c(h_ins.edge_num, -1);
@@ -408,6 +410,7 @@ bool ldpc_full_precision_decoder::decoder(std::vector<double> cwds,int &iteratio
                 message.push_back(msg_c2v[h_ins.edge_v[ii][jj]]);
             }
             final_codewords = vari_node_operation(message);
+            
             for (int jj = 0; jj < cur_dv; jj++)
             {
                 msg_v2c[h_ins.edge_v[ii][jj]] = final_codewords-msg_c2v[h_ins.edge_v[ii][jj]];
@@ -422,6 +425,7 @@ bool ldpc_full_precision_decoder::decoder(std::vector<double> cwds,int &iteratio
             }
         }
 
+
         //check sum
         if (iscwds(final_bits))
         {
@@ -433,7 +437,9 @@ bool ldpc_full_precision_decoder::decoder(std::vector<double> cwds,int &iteratio
                     return false;
                 }
             }
+           
             return true;
+
         }
     }
     iteration = iteration + max_iter;
@@ -452,14 +458,6 @@ void ldpc_full_precision_decoder::decoder_track(std::vector<double> cwds, int &i
     std::string ts_filename = "trapping_set_boxplus_"+std::to_string(ind)+".txt";
     std::string llr_filename = "wrong_llr_boxplus_"+std::to_string(ind)+".txt";
     std::string tracking_filename = "trapping_set_info_"+std::to_string(ind)+".txt";
-    //std::vector <int> tracked_vari{297,982,928,302,987,933,879,215,923,101,807,1271,154,1153};
-    //std::vector <int> tracked_vari{297, 923,  215,  879,  933,  987,  302,  928,  982};
-    //std::vector <int> tracked_vari{297, 923,  215,  1153,  154,  1271,  101};
-    //std::vector <int> tracked_vari{101, 297, 982,  928, 302,807};
-
-    //code 11
-    //std::vector <int> tracked_vari{732,786,840,176,992,668,1261,405,833,349,1114};
-    //code 13
     std::vector <int> tracked_vari{59,183,309,314,940,994,999,1175,1229};
 
     std::ofstream track_handle(tracking_filename);

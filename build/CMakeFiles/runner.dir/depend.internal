@@ -5,15 +5,15 @@ CMakeFiles/runner.dir/src/Main.cpp.o
  ../include/Parity_Check_Matrix_Info.h
  ../include/full_BP.h
  ../include/ldpc_full_precision_decoder.h
- /mnt/e/Gitrepo/LDPC-MessagePassingDecoder/src/Main.cpp
+ /home/nick/Documents/Gitpro/LDPC-MessagePassingDecoder/src/Main.cpp
 CMakeFiles/runner.dir/src/Parity_Check_Matrix_Info.cpp.o
  ../include/Parity_Check_Matrix_Info.h
- /mnt/e/Gitrepo/LDPC-MessagePassingDecoder/src/Parity_Check_Matrix_Info.cpp
+ /home/nick/Documents/Gitpro/LDPC-MessagePassingDecoder/src/Parity_Check_Matrix_Info.cpp
 CMakeFiles/runner.dir/src/full_BP.cpp.o
  ../include/full_BP.h
- /mnt/e/Gitrepo/LDPC-MessagePassingDecoder/src/full_BP.cpp
+ /home/nick/Documents/Gitpro/LDPC-MessagePassingDecoder/src/full_BP.cpp
 CMakeFiles/runner.dir/src/ldpc_full_precision_decoder.cpp.o
  ../include/Parity_Check_Matrix_Info.h
  ../include/full_BP.h
  ../include/ldpc_full_precision_decoder.h
- /mnt/e/Gitrepo/LDPC-MessagePassingDecoder/src/ldpc_full_precision_decoder.cpp
+ /home/nick/Documents/Gitpro/LDPC-MessagePassingDecoder/src/ldpc_full_precision_decoder.cpp

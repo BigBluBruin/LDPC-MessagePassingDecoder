@@ -50,19 +50,19 @@ sstream
 random
 -
 
-/mnt/e/Gitrepo/LDPC-MessagePassingDecoder/src/Main.cpp
+/home/nick/Documents/Gitpro/LDPC-MessagePassingDecoder/src/Main.cpp
 ldpc_full_precision_decoder.h
-/mnt/e/Gitrepo/LDPC-MessagePassingDecoder/src/ldpc_full_precision_decoder.h
+/home/nick/Documents/Gitpro/LDPC-MessagePassingDecoder/src/ldpc_full_precision_decoder.h
 
-/mnt/e/Gitrepo/LDPC-MessagePassingDecoder/src/Parity_Check_Matrix_Info.cpp
+/home/nick/Documents/Gitpro/LDPC-MessagePassingDecoder/src/Parity_Check_Matrix_Info.cpp
 Parity_Check_Matrix_Info.h
-/mnt/e/Gitrepo/LDPC-MessagePassingDecoder/src/Parity_Check_Matrix_Info.h
+/home/nick/Documents/Gitpro/LDPC-MessagePassingDecoder/src/Parity_Check_Matrix_Info.h
 
-/mnt/e/Gitrepo/LDPC-MessagePassingDecoder/src/full_BP.cpp
+/home/nick/Documents/Gitpro/LDPC-MessagePassingDecoder/src/full_BP.cpp
 full_BP.h
-/mnt/e/Gitrepo/LDPC-MessagePassingDecoder/src/full_BP.h
+/home/nick/Documents/Gitpro/LDPC-MessagePassingDecoder/src/full_BP.h
 
-/mnt/e/Gitrepo/LDPC-MessagePassingDecoder/src/ldpc_full_precision_decoder.cpp
+/home/nick/Documents/Gitpro/LDPC-MessagePassingDecoder/src/ldpc_full_precision_decoder.cpp
 ldpc_full_precision_decoder.h
-/mnt/e/Gitrepo/LDPC-MessagePassingDecoder/src/ldpc_full_precision_decoder.h
+/home/nick/Documents/Gitpro/LDPC-MessagePassingDecoder/src/ldpc_full_precision_decoder.h
 
